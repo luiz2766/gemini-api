@@ -1,39 +1,39 @@
 import { GoogleGenAI } from "@google/genai";
 
 export default async function handler(req, res) {
-  if (req.method !== "POST") {
-    return res.status(405).end();
-  }
-
   try {
-    const { base64Pdf } = req.body;
-
-    if (!base64Pdf) {
-      return res.status(400).json({ error: "PDF não recebido" });
+    if (req.method !== "POST") {
+      return res.status(405).json({ error: "Method not allowed" });
     }
 
-    if (!process.env.API_KEY) {
-      return res.status(500).json({ error: "API_KEY não configurada" });
+    const { fileBase64 } = req.body;
+
+    if (!fileBase64) {
+      return res.status(400).json({ error: "fileBase64 ausente" });
     }
 
     const ai = new GoogleGenAI({
-      apiKey: process.env.API_KEY
+      apiKey: process.env.GEMINI_API_KEY,
     });
 
-    const response = await ai.models.generateContent({
-      model: "gemini-3-flash-preview",
-      contents: {
-        parts: [
-          { text: "Extraia os dados e retorne JSON estrito." },
-          { inlineData: { data: base64Pdf, mimeType: "application/pdf" } }
-        ]
-      }
+    const result = await ai.models.generateContent({
+      model: "gemini-1.5-flash",
+      contents: [
+        {
+          role: "user",
+          parts: [{ text: "Teste simples" }],
+        },
+      ],
     });
 
-    res.status(200).json({ text: response.text });
-
+    return res.status(200).json({
+      ok: true,
+      text: result.text,
+    });
   } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: err.message });
+    console.error("API ERROR:", err);
+    return res.status(500).json({
+      error: err.message || "Erro interno",
+    });
   }
 }
